@@ -15,7 +15,7 @@ import multiprocessing
 from tempfile import NamedTemporaryFile
 import openai
 import json
-
+import streamlit as st
 
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
@@ -110,22 +110,57 @@ def extract_structure_data(content: str, data_points):
     return results
 
 def main():
-
     default_data_points = """{
         "invoice_item": "what is the item that charged",
         "Amount": "how much does the invoice item cost in total",
         "Company_name": "company that issued the invoice",
-        "invoice_date": "when was the invoice issued",
+        "invoice_date": "when was the invoice issued"
     }"""
 
-    content = extract_content_from_url("wordpress-pdf-invoice-plugin-sample.pdf")
-    data = extract_structure_data(content, default_data_points)
-    print(data)
+    st.set_page_config(page_title="PDF text extractor", page_icon=":bird:")
 
+    st.header("PDF text extractor :bird:")
 
-if __name__== '__main__':
+    data_points = st.text_area("Data points", value=default_data_points, height=170)
 
-    
+    uploaded_files = st.file_uploader("Upload PDFs", accept_multiple_files=True)
+
+    if uploaded_files is not None and data_points is not None:
+        results = []
+        for file in uploaded_files:
+            with NamedTemporaryFile(delete=False) as f:
+                f.write(file.getbuffer())
+                file_path_ = f.name
+                try:
+                    content = extract_content_from_url(file_path_)
+                    print("Extracted Content:", content)  # Debug: print extracted content
+                    data = extract_structure_data(content, data_points)
+                    print("Extracted Structure Data:", data)  # Debug: print extracted structure data
+                    try:
+                        json_data = json.loads(data)
+                        if isinstance(json_data, list):
+                            results.extend(json_data)  # Use extend() for lists
+                        else:
+                            results.append(json_data)  # Wrap the dict in a list
+                    except json.JSONDecodeError as e:
+                        st.error(f"JSON parsing error for file {file.name}: {e}")
+                        print(f"JSON parsing error: {e}")  # Debug: print JSON error
+                        continue
+                except Exception as e:
+                    st.error(f"An error occurred while processing the file {file.name}: {e}")
+
+        if len(results) > 0:
+            try:
+                df = pd.DataFrame(results)
+                st.subheader("Results")
+                st.data_editor(df)
+            except Exception as e:
+                st.error(f"An error occurred while creating the DataFrame: {e}")
+                st.write(results)
+
+                 
+
+if __name__== '__main__':  
 
     multiprocessing.freeze_support()
     main()

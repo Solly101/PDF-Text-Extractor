@@ -12,7 +12,7 @@ This Python script extracts structured data from PDF invoices using image proces
 ## Prerequisites
 
 - Python 3.7+
-- Tesseract OCR engine installed
+- Tesseract OCR engine installed (Download and install tesseract-ocr-w64-setup)
 
 ## Installation
 
